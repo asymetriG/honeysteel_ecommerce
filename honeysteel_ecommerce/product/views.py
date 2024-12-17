@@ -25,7 +25,51 @@ def add_to_cart(request, product_id):
         else:
             messages.error(request, "Invalid quantity. Please check stock availability.")
 
-    return redirect('index')  # Redirect back to the products page
+    return redirect('index')  
+
+def my_card(request):
+    # Retrieve cart from session
+    cart = request.session.get('cart', {})
+    cart_items = []
+
+    # Build a list of cart items with product details
+    for product_id, quantity in cart.items():
+        product = get_object_or_404(Product, product_id=product_id)
+        cart_items.append({
+            'product': product,
+            'quantity': quantity,
+            'total_price': product.price * quantity
+        })
+
+    # Calculate the total price of all items in the cart
+    total_price = sum(item['total_price'] for item in cart_items)
+
+    # Fetch user's budget
+    customer = getattr(request.user, 'customer', None)
+    if customer:
+        budget = customer.budget
+    else:
+        budget = None  # Handle case where user is not a customer
+
+    context = {
+        'cart_items': cart_items,
+        'total_price': total_price,
+        'budget': budget,
+    }
+
+    return render(request, 'product/my_card.html', context)
+
+def remove_from_cart(request, product_id):
+    cart = request.session.get('cart', {})
+    if str(product_id) in cart:
+        del cart[str(product_id)]  # Remove the product from the cart
+        request.session['cart'] = cart
+        request.session.modified = True
+        messages.success(request, "Product removed from your cart.")
+    else:
+        messages.error(request, "Product not found in your cart.")
+
+    return redirect('product:my_card')  # Redirect back to the cart page
 
 def edit_product(request, product_id):
     # Fetch the product to be edited or return 404
