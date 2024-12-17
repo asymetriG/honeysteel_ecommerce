@@ -1,0 +1,117 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    {% block title %}
+    
+    {% endblock title %}
+    <style>
+        {% comment %} body {
+            background: url("{% static 'img/logo.png' %}") no-repeat center center fixed;
+            background-size: cover;
+        } {% endcomment %}
+
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            z-index: -1; 
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Honey Steel Ecommerce</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/contact">Contact</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    {% if request.user.is_authenticated %}
+
+                    {% if request.user.is_superuser %}
+                    <a href="{% url 'administration:dashboard' %}" class="btn btn-outline-primary me-2">Dashboard</a>
+                    {% else %}
+                    {% endif %}
+
+                    <a href="{% url 'customer:logout' %}" class="btn btn-outline-primary me-2">Logout</a>
+                    {% else %}
+                    <a href="{% url 'customer:login' %}" class="btn btn-outline-primary me-2">Login</a>
+                    <a href="{% url 'customer:register' %}" class="btn btn-primary">Register</a>
+                    {% endif %}
+                    <!-- Language Dropdown -->
+                    {% comment %} <div class="dropdown me-3">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            Language
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+                            <li><a class="dropdown-item" href="/set-language/en">English</a></li>
+                            <li><a class="dropdown-item" href="/set-language/tr">Türkçe</a></li>
+                            <li><a class="dropdown-item" href="/set-language/de">Deutsch</a></li>
+                        </ul>
+                    </div> {% endcomment %}
+                    
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        {% if messages %}
+        <br><br><br>
+      {% for message in messages %}
+        {% if message.tags == 'error' %}
+          <div class="alert alert-danger">{{ message }}</div>
+        {% else %}
+          <div class="alert alert-success">{{ message }}</div>
+        {% endif %}
+      {% endfor %}
+      <br>
+    {% endif %}
+        
+        {% block body %}
+    
+        {% endblock body %}
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        (() => {
+          'use strict'
+        
+          const forms = document.querySelectorAll('.needs-validation')
+      
+          Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+              if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+              }
+        
+              form.classList.add('was-validated')
+            }, false)
+          })
+        })()
+      </script>
+      
+
+</body>
+</html>

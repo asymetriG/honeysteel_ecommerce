@@ -1,0 +1,68 @@
+{% extends "utils/layout.html" %}
+{% load static %}
+{% block body %}
+<div class="container min-vh-100 d-flex align-items-center">
+    <div class="row w-100">
+        <!-- Left column: Logo -->
+        <div class="col-md-6 d-flex justify-content-center">
+            <img src="{% static 'img/logo.png' %}" alt="Logo" class="img-fluid" style="width: 50rem; height: auto;">
+        </div>
+        
+        <!-- Right column: Register form -->
+        <div class="col-md-6 d-flex justify-content-center">
+            <div class="col-md-8">
+                <h3 class="text-center mb-4">Register</h3>
+                <form method="POST" action="{% url 'customer:register' %}" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Choose a username" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" placeholder="First Name" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Last Name" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please enter a valid email address.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Enter a password" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password2" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="password2" name="password2" placeholder="Confirm your password" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Register</button>
+                    <div class="text-center mt-3">
+                        <p>Already have an account? <a href="{% url 'customer:login' %}">Login here</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock body %}

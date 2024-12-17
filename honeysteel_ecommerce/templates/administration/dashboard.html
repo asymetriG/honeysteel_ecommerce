@@ -1,0 +1,103 @@
+{% extends "utils/layout.html" %}
+{% load static %}
+
+{% block body %}
+<br><br><br>
+<h2>DASHBOARD</h2>
+<hr>
+
+<!-- Customer Table Placeholder -->
+<div id="customer-status" class="alert alert-info" style="display:none;"></div>
+
+
+<h1 class="text-center mb-4">Customers</h1>
+<div class="table-responsive">
+    <table class="table table-striped table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Customer ID</th>
+                <th>Customer Name</th>
+                <th>Budget</th>
+                <th>Customer Type</th>
+                <th>Total Spent</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers %}
+            <tr>
+                <td>{{ customer.customer_id }}</td>
+                <td>{{ customer.user.username }}</td>
+                <td>{{ customer.budget }}</td>
+                <td>{{ customer.customer_type}}</td>
+                <td>{{ customer.total_spent }}</td>
+
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No customers found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<br>
+
+<h1 class="text-center mb-4">Products</h1>
+<div class="table-responsive">
+    <table class="table table-striped table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Product ID</th>
+                <th>Product Name</th>
+                <th>Stock</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr>
+                <td>{{ product.product_id }}</td>
+                <td>{{ product.product_name }}</td>
+                <td>{{ product.stock }}</td>
+                <td>{{ product.price}}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No products found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<br><br>
+{% comment %} <!-- Button to Generate Random Customers -->
+<a href="#" class="btn btn-info w-100" id="generate-btn">Generate Random Customers</a> {% endcomment %}
+
+<script>
+    document.getElementById("generate-btn").addEventListener("click", function() {
+        fetch("{% url 'administration:generate_customers' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}", // CSRF token for POST request
+                "Content-Type": "application/json"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const statusDiv = document.getElementById("customer-status");
+            if (data.success) {
+                statusDiv.className = "alert alert-success";
+                statusDiv.textContent = data.message;
+            } else {
+                statusDiv.className = "alert alert-danger";
+                statusDiv.textContent = "Failed to generate customers!";
+            }
+            statusDiv.style.display = "block";
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    });
+</script>
+{% endblock body %}

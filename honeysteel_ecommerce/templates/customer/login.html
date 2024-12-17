@@ -1,0 +1,45 @@
+{% extends "utils/layout.html" %}
+{% load static %}
+{% block body %}
+<div class="container min-vh-100 d-flex align-items-center"> 
+    {% comment %} password123 user passwords {% endcomment %}
+    <div class="row w-100">
+        <!-- Left column: Logo -->
+        <div class="col-md-6 d-flex justify-content-center">
+            <img src="{% static 'img/logo.png' %}" alt="Logo" class="img-fluid" style="width: 50rem;">
+        </div>
+        
+        <!-- Right column: Login form -->
+        <div class="col-md-6 d-flex justify-content-center">
+            <div class="col-md-8">
+                <h3 class="text-center mb-4">Login</h3>
+                <form method="POST" action="{% url 'customer:login' %}" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe" name="remember_me">
+                        <label class="form-check-label" for="rememberMe">Remember me</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                    <div class="text-center mt-3">
+                        <p>Don't have an account? <a href="{% url 'customer:register' %}">Register here</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock body %}
