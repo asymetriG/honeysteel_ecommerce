@@ -7,7 +7,12 @@ from django.http import JsonResponse
 
 # Create your views here.
 def index(request):
-    return render(request, 'index.html')
+    # Fetch all products
+    products = Product.objects.all()
+
+    # Pass products to the template
+    context = {'products': products}
+    return render(request, 'index.html', context)
 
 
 def dashboard(request):
