@@ -52,6 +52,7 @@
                 <th>Product Name</th>
                 <th>Stock</th>
                 <th>Price</th>
+                <th>Edit Product</th>
             </tr>
         </thead>
         <tbody>
@@ -61,6 +62,7 @@
                 <td>{{ product.product_name }}</td>
                 <td>{{ product.stock }}</td>
                 <td>{{ product.price}}</td>
+                <td><a href="{% url 'product:edit_product' product.product_id %}" class="btn btn-warning w-100">Edit Product</a></td>
             </tr>
             {% empty %}
             <tr>
