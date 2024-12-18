@@ -183,6 +183,7 @@ def edit_product(request, product_id):
 
     # Render the edit form with product details
     context = {'product': product}
+
     return render(request, "product/edit_product.html", context)
 
 
