@@ -1,5 +1,5 @@
 from django.shortcuts import render,redirect
-from product.models import Customer,Product
+from product.models import Customer,Product,Order
 import random
 from django.contrib.auth.models import User
 from django.http import JsonResponse
@@ -7,18 +7,21 @@ from django.http import JsonResponse
 
 # Create your views here.
 def index(request):
-    # Fetch all products
-    products = Product.objects.all()
-
-    # Pass products to the template
-    context = {'products': products}
-    return render(request, 'index.html', context)
+    return render(request, 'index.html')
 
 
 def dashboard(request):
     customers = Customer.objects.all()  # Fetch all customers from the database
     products = Product.objects.all()
-    return render(request, "administration/dashboard.html", {'customers': customers,'products':products})
+    orders = Order.objects.all()
+
+    context = {
+        'customers': customers,
+        'products': products,
+        'orders': orders,
+    }
+
+    return render(request, 'administration/dashboard.html', context)
 
 
 

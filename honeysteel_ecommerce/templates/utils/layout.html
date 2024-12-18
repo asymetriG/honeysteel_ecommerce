@@ -38,14 +38,9 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="/">Home</a>
+                        <a class="nav-link active" aria-current="page" href="{% url 'product:products' %}">Products</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/about">About</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/contact">Contact</a>
-                    </li>
+
                 </ul>
                 <div class="d-flex align-items-center">
                     {% if request.user.is_authenticated %}
@@ -53,9 +48,13 @@
                     {% if request.user.is_superuser %}
                     <a href="{% url 'administration:dashboard' %}" class="btn btn-outline-primary me-2">Dashboard</a>
                     {% else %}
+                    <a href="#" class="btn me-2">
+                        <i class="fa fa-shopping-cart"></i> My Orders
+                    </a>
                     <a href="{% url 'product:my_card' %}" class="btn me-2">
                         <i class="fa fa-shopping-cart"></i> My Cart
                     </a>
+                    
 
                     {% endif %}
 

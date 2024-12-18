@@ -6,100 +6,134 @@
 <h2>DASHBOARD</h2>
 <hr>
 
-<!-- Customer Table Placeholder -->
-<div id="customer-status" class="alert alert-info" style="display:none;"></div>
 
+<div class="row">
+    <!-- Customers Table -->
+    <div class="col-md-6">
+        <h3 class="text-center mb-4">Customers</h3>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Customer ID</th>
+                        <th>Customer Name</th>
+                        <th>Budget</th>
+                        <th>Customer Type</th>
+                        <th>Total Spent</th>
+                        <th>Edit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                    <tr>
+                        <td>{{ customer.customer_id }}</td>
+                        <td>{{ customer.user.username }}</td>
+                        <td>{{ customer.budget }}</td>
+                        <td>{{ customer.customer_type }}</td>
+                        <td>{{ customer.total_spent }}</td>
+                        <td>
+                            <a href="{% url 'customer:edit_customer' customer.customer_id %}" class="btn btn-warning btn-sm">Edit</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No customers found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<h1 class="text-center mb-4">Customers</h1>
-<div class="table-responsive">
-    <table class="table table-striped table-bordered table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>Customer ID</th>
-                <th>Customer Name</th>
-                <th>Budget</th>
-                <th>Customer Type</th>
-                <th>Total Spent</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for customer in customers %}
-            <tr>
-                <td>{{ customer.customer_id }}</td>
-                <td>{{ customer.user.username }}</td>
-                <td>{{ customer.budget }}</td>
-                <td>{{ customer.customer_type}}</td>
-                <td>{{ customer.total_spent }}</td>
-
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="text-center">No customers found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- Products Table -->
+    <div class="col-md-6">
+        <h3 class="text-center mb-4">Products</h3>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Product ID</th>
+                        <th>Product Name</th>
+                        <th>Stock</th>
+                        <th>Price</th>
+                        <th>Edit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>{{ product.product_id }}</td>
+                        <td>{{ product.product_name }}</td>
+                        <td>{{ product.stock }}</td>
+                        <td>{{ product.price }}</td>
+                        <td>
+                            <a href="{% url 'product:edit_product' product.product_id %}" class="btn btn-warning btn-sm">
+                                Edit
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No products found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <a href="{% url 'product:add_product' %}" class="btn btn-success w-100 mt-3">Add Product</a>
+        </div>
+    </div>
 </div>
+
+<br><hr><br>
+
+<!-- Orders Table -->
+<div class="row">
+    <div class="col-md-12">
+        <h3 class="text-center mb-4">Orders</h3>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Customer Type</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Total Price</th>
+                        <th>Status</th>
+                        <th>Order Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>{{ order.order_id }}</td>
+                        <td>{{ order.customer.user.username }}</td>
+                        <td>{{ order.customer.customer_type }}</td>
+                        <td>{{ order.product.product_name }}</td>
+                        <td>{{ order.quantity }}</td>
+                        <td>{{ order.total_price }}</td>
+                        <td>{{ order.order_status }}</td>
+                        <td>{{ order.order_date }}</td>
+                        <td>
+                            <a href="{% url 'product:decline_order' order.order_id %}" class="btn btn-sm btn-danger">
+                                Decline Order
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No orders found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <a href="#" class="btn btn-primary w-100">Confirm All Orders</a>
+        </div>
+    </div>
+</div>
+
 
 <br>
-
-<h1 class="text-center mb-4">Products</h1>
-<div class="table-responsive">
-    <table class="table table-striped table-bordered table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>Product ID</th>
-                <th>Product Name</th>
-                <th>Stock</th>
-                <th>Price</th>
-                <th>Edit Product</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for product in products %}
-            <tr>
-                <td>{{ product.product_id }}</td>
-                <td>{{ product.product_name }}</td>
-                <td>{{ product.stock }}</td>
-                <td>{{ product.price}}</td>
-                <td><a href="{% url 'product:edit_product' product.product_id %}" class="btn btn-warning w-100">Edit Product</a></td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="text-center">No products found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-<br><br>
-{% comment %} <!-- Button to Generate Random Customers -->
-<a href="#" class="btn btn-info w-100" id="generate-btn">Generate Random Customers</a> {% endcomment %}
-
-<script>
-    document.getElementById("generate-btn").addEventListener("click", function() {
-        fetch("{% url 'administration:generate_customers' %}", {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": "{{ csrf_token }}", // CSRF token for POST request
-                "Content-Type": "application/json"
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            const statusDiv = document.getElementById("customer-status");
-            if (data.success) {
-                statusDiv.className = "alert alert-success";
-                statusDiv.textContent = data.message;
-            } else {
-                statusDiv.className = "alert alert-danger";
-                statusDiv.textContent = "Failed to generate customers!";
-            }
-            statusDiv.style.display = "block";
-        })
-        .catch(error => {
-            console.error("Error:", error);
-        });
-    });
-</script>
 {% endblock body %}

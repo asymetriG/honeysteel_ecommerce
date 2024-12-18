@@ -1,39 +1,5 @@
 {% extends "utils/layout.html" %}
 {% block body %}
 <br><br><br>
-<div class="container">
-    <h1 class="text-center mb-4">Welcome to Honeysteel Ecommerce {{request.user.username}}</h1>
-    <hr>
-
-    <!-- Product Grid -->
-    <div class="row">
-        {% for product in products %}
-        <div class="col-md-4 mb-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">{{ product.product_name }}</h5>
-                    <p class="card-text">
-                        <strong>Price:</strong> ${{ product.price }} <br>
-                        <strong>Stock:</strong> {{ product.stock }}
-                    </p>
-                    <!-- Quantity Form -->
-                    <form method="POST" action="{% url 'product:add_to_cart' product.product_id %}">
-                        {% csrf_token %}
-                        <div class="input-group mb-3">
-                            <input type="number" name="quantity" class="form-control" min="1" max="{{ product.stock }}" placeholder="Enter quantity" required>
-                            <button type="submit" class="btn btn-outline-primary">
-                                <i class="bi bi-cart"></i> Add to Cart
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        {% empty %}
-        <div class="col-12">
-            <p class="text-center">No products available at the moment.</p>
-        </div>
-        {% endfor %}
-    </div>
-</div>
+<h2>Helo</h2>
 {% endblock body %}
