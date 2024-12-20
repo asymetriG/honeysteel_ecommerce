@@ -83,7 +83,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'honeysteel_db',  
         'USER': 'root',       
-        'PASSWORD': 'Gegnerisches99/',  
+        'PASSWORD': 'batihfal',  
         'HOST': 'localhost',           
         'PORT': '3306',               
     }
