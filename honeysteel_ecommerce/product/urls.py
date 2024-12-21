@@ -13,5 +13,7 @@ urlpatterns = [
     path('add-product/', views.add_product, name='add_product'), 
     path('confirm_cart',views.confirm_cart,name="confirm_cart"),
     path('decline-order/<int:order_id>/', views.decline_order, name='decline_order'),
-
+    path('my-orders/', views.my_orders, name='my_orders'),
+    path('confirm-all-orders/', views.confirm_all_orders, name='confirm_all_orders'),
+    path('reset-db/', views.reset_db, name='reset_db'),
 ]

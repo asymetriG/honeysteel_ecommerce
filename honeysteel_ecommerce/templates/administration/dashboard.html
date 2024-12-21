@@ -37,12 +37,16 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center">No customers found.</td>
+                        <td colspan="6" class="text-center">No customers found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        <a href="{% url 'product:reset_db' %}" class="btn btn-danger w-100 mt-3" 
+        onclick="return confirm('Are you sure you want to reset the database? This action cannot be undone.');">
+        Reset DB
+        </a>
     </div>
 
     <!-- Products Table -->
@@ -124,12 +128,15 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center">No orders found.</td>
+                        <td colspan="9" class="text-center">No orders found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            <a href="#" class="btn btn-primary w-100">Confirm All Orders</a>
+            <a href="{% url 'product:confirm_all_orders' %}" class="btn btn-primary w-100" 
+            onclick="return confirm('Are you sure you want to confirm all orders?');">
+            Confirm All Orders
+            </a>
         </div>
     </div>
 </div>
