@@ -13,6 +13,8 @@ from django.utils.timezone import now
 from log.models import Log  # Assuming Log model is in logs app
 
 product_locks = defaultdict(threading.Lock)
+processing_start_times = {}
+
 
 def calculate_priority(order):
     
@@ -23,15 +25,31 @@ def calculate_priority(order):
     return base_priority + (wait_time * wait_time_weight)
 
 
-def process_order(order):
+def process_order(order,queue_start_time):
 
-    global product_locks
+    global product_locks,processing_start_times
 
 
     product_lock = product_locks[order.product.product_id]
 
     with product_lock:  
         with transaction.atomic():  
+            
+            current_time = time.time()
+            
+            if current_time - queue_start_time > 15:
+                # Timeout exceeded, cancel the order
+                order.order_status = "CANCELLED"
+                order.save()
+
+                # Write to the log file
+                Log.save_log(
+                    log_type="ERROR",
+                    log_details=f"Order {order.id} canceled due to timeout after 15 seconds.",
+                    customer=order.customer,
+                    order=order,
+                )
+                return
             
             product = Product.objects.select_for_update().get(product_id=order.product.product_id)
 
@@ -64,6 +82,8 @@ def process_order(order):
             
             order.order_status = "COMPLETED"
             order.save()
+            
+            processing_start_times[order.id] = time.time()
         
         
 def reset_db(request):
@@ -117,33 +137,34 @@ def reset_db(request):
         
 def confirm_all_orders(request):
     if request.method == "GET":
-    
         pending_orders = Order.objects.filter(order_status="PENDING")
 
-        
+        # Sort orders by priority
         sorted_orders = sorted(pending_orders, key=calculate_priority, reverse=True)
 
         threads = []
+        processing_start_times.clear()  # Reset start times
 
-        
         for order in sorted_orders:
-            thread = threading.Thread(target=process_order, args=(order,))
+            # Record the queue start time
+            queue_start_time = time.time()
+            processing_start_times[order.id] = queue_start_time
+
+            # Start a thread to process the order
+            thread = threading.Thread(target=process_order, args=(order, queue_start_time))
             threads.append(thread)
             thread.start()
 
-        
+        # Wait for all threads to finish
         for thread in threads:
             thread.join()
 
         messages.success(request, "All pending orders have been processed.")
-        Log.save_log(
-        log_type="INFO",
-        log_details="Admin confirmed all pending orders.",
-    )
         return redirect("administration:dashboard")
 
     messages.error(request, "Invalid request method.")
     return redirect("administration:dashboard")
+
 
 
 def products(request):
