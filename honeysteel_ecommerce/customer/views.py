@@ -3,7 +3,22 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
 from django.contrib import messages
 from customer.models import Customer
+from product.models import Order
 
+
+def customer_orders(request, customer_id):
+    # Fetch the customer
+    customer = get_object_or_404(Customer, pk=customer_id)
+
+    # Fetch orders for the customer
+    orders = Order.objects.filter(customer=customer).order_by('-order_date')
+
+    # Pass data to the template
+    context = {
+        'customer': customer,
+        'orders': orders,
+    }
+    return render(request, 'customer/customer_orders.html', context)
 
 def login_view(request):
     

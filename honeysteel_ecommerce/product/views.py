@@ -10,6 +10,7 @@ from django.db import transaction
 from datetime import datetime
 from threading import Lock
 from django.utils.timezone import now
+from log.models import Log  # Assuming Log model is in logs app
 
 product_locks = defaultdict(threading.Lock)
 
@@ -71,6 +72,7 @@ def reset_db(request):
 
     Product.objects.all().delete()
 
+    Log.objects.all().delete()
 
     Customer.objects.all().delete()
     User.objects.filter(is_superuser=False).delete() 
@@ -106,6 +108,11 @@ def reset_db(request):
         )
 
     messages.success(request, "Database reset successfully!")
+    
+    Log.save_log(
+        log_type="INFO",
+        log_details="Database reset by admin.",
+    )
     return redirect("administration:dashboard")  
         
 def confirm_all_orders(request):
@@ -129,6 +136,10 @@ def confirm_all_orders(request):
             thread.join()
 
         messages.success(request, "All pending orders have been processed.")
+        Log.save_log(
+        log_type="INFO",
+        log_details="Admin confirmed all pending orders.",
+    )
         return redirect("administration:dashboard")
 
     messages.error(request, "Invalid request method.")
@@ -308,17 +319,22 @@ def edit_product(request, product_id):
     return render(request, "product/edit_product.html", context)
 
 
+
+
 def decline_order(request, order_id):
 
     order = get_object_or_404(Order, order_id=order_id)
 
 
-    if order.order_status != 'CANCELLED':
+    if order.order_status == 'PENDING':
         order.order_status = 'CANCELLED'
         order.save()
         messages.success(request, f"Order {order_id} has been declined.")
+        
+    elif order.order_status=="COMPLETED":
+        messages.error  (request, f"Order {order_id} has been completed so it will not be declined.")
     else:
-        messages.warning(request, f"Order {order_id} is already declined.")
+        messages.errorasd(request, f"Order {order_id} is already declined.")
 
     return redirect('administration:dashboard')
 
