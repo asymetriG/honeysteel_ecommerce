@@ -14,11 +14,20 @@ def dashboard(request):
     customers = Customer.objects.all()  # Fetch all customers from the database
     products = Product.objects.all()
     orders = Order.objects.all()
+    
+    product_names = [product.product_name for product in products]
+    product_stocks = [product.stock for product in products]
+    low_stock_products = [product for product in products if product.stock < 10]
+
 
     context = {
         'customers': customers,
         'products': products,
         'orders': orders,
+        'product_names': product_names,
+        'product_stocks': product_stocks,
+        'low_stock_products': low_stock_products,  
+
     }
 
     return render(request, 'administration/dashboard.html', context)
