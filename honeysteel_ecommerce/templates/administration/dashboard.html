@@ -6,7 +6,6 @@
 <h2>DASHBOARD</h2>
 <hr>
 
-
 <div class="row">
     <!-- Customers Table -->
     <div class="col-md-6">
@@ -21,12 +20,13 @@
                         <th>Customer Type</th>
                         <th>Total Spent</th>
                         <th>Edit</th>
-                        <th>Show Orders</th> <!-- New Column -->
+                        <th>Show Orders</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for customer in customers %}
-                    <tr>
+                    <tr class="{% if customer.customer_type == 'Premium' %}table-warning{% endif %}">
+                        <!-- Apply golden color for premium users -->
                         <td>{{ customer.customer_id }}</td>
                         <td>{{ customer.user.username }}</td>
                         <td>{{ customer.budget }}</td>
@@ -45,7 +45,6 @@
                     </tr>
                     {% endfor %}
                 </tbody>
-                
             </table>
         </div>
         <a href="{% url 'product:reset_db' %}" class="btn btn-danger w-100 mt-3" 
@@ -116,7 +115,8 @@
                 </thead>
                 <tbody>
                     {% for order in orders %}
-                    <tr>
+                    <tr class="{% if order.order_status == 'PENDING' %}table-primary{% elif order.order_status == 'COMPLETED' %}table-success{% elif order.order_status == 'CANCELLED' %}table-danger{% endif %}">
+                        <!-- Apply color for order statuses -->
                         <td>{{ order.order_id }}</td>
                         <td>{{ order.customer.user.username }}</td>
                         <td>{{ order.customer.customer_type }}</td>
@@ -145,7 +145,6 @@
         </div>
     </div>
 </div>
-
 
 <br>
 {% endblock body %}

@@ -29,7 +29,7 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">Honey Steel Ecommerce</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -63,17 +63,7 @@
                     <a href="{% url 'customer:login' %}" class="btn btn-outline-primary me-2">Login</a>
                     <a href="{% url 'customer:register' %}" class="btn btn-primary">Register</a>
                     {% endif %}
-                    <!-- Language Dropdown -->
-                    {% comment %} <div class="dropdown me-3">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            Language
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="languageDropdown">
-                            <li><a class="dropdown-item" href="/set-language/en">English</a></li>
-                            <li><a class="dropdown-item" href="/set-language/tr">Türkçe</a></li>
-                            <li><a class="dropdown-item" href="/set-language/de">Deutsch</a></li>
-                        </ul>
-                    </div> {% endcomment %}
+
                     
                 </div>
             </div>
@@ -81,7 +71,7 @@
     </nav>
     <div class="container">
         {% if messages %}
-        <br><br><br>
+        <br>
       {% for message in messages %}
         {% if message.tags == 'error' %}
           <div class="alert alert-danger">{{ message }}</div>
