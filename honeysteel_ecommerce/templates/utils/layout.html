@@ -47,7 +47,9 @@
                     {% if request.user.is_authenticated %}
 
                     {% if request.user.is_superuser %}
+                    <a href="{% url 'log:logs_page' %}" class="btn btn-outline-primary me-2">Logs</a>
                     <a href="{% url 'administration:dashboard' %}" class="btn btn-outline-primary me-2">Dashboard</a>
+                    
                     {% else %}
                     <a href="{% url 'product:my_orders' %}" class="btn me-2">
                         <i class="fa fa-shopping-cart"></i> My Orders

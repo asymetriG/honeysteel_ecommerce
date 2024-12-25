@@ -25,6 +25,7 @@ def calculate_priority(order):
     return base_priority + (wait_time * wait_time_weight)
 
 
+
 def process_order(order,queue_start_time):
 
     global product_locks,processing_start_times
@@ -38,11 +39,11 @@ def process_order(order,queue_start_time):
             current_time = time.time()
             
             if current_time - queue_start_time > 15:
-                # Timeout exceeded, cancel the order
+            
                 order.order_status = "CANCELLED"
                 order.save()
 
-                # Write to the log file
+              
                 Log.save_log(
                     log_type="ERROR",
                     log_details=f"Order {order.id} canceled due to timeout after 15 seconds.",
@@ -60,6 +61,13 @@ def process_order(order,queue_start_time):
                 
                 order.order_status = "CANCELLED"
                 order.save()
+                
+                Log.save_log(
+                    log_type="ERROR",
+                    log_details=f"Order {order.id} canceled due to lack of stock",
+                    customer=order.customer,
+                    order=order,
+                )
                 return
 
            
@@ -75,6 +83,13 @@ def process_order(order,queue_start_time):
             
             if customer.total_spent > 2000:
                 customer.customer_type = "Premium"
+                
+                Log.save_log(
+                    log_type="INFO",
+                    log_details=f"Customer {order.customer} became a premium customer",
+                    customer=order.customer,
+                    order=order,
+                )
 
            
             customer.save()
@@ -83,7 +98,14 @@ def process_order(order,queue_start_time):
             order.order_status = "COMPLETED"
             order.save()
             
-            processing_start_times[order.id] = time.time()
+            Log.save_log(
+                    log_type="INFO",
+                    log_details=f"Order {order.order_id} processed",
+                    customer=order.customer,
+                    order=order,
+            )
+            
+            processing_start_times[order.order_id] = time.time()
         
         
 def reset_db(request):
@@ -143,23 +165,25 @@ def confirm_all_orders(request):
         sorted_orders = sorted(pending_orders, key=calculate_priority, reverse=True)
 
         threads = []
-        processing_start_times.clear()  # Reset start times
+        processing_start_times.clear()  
 
         for order in sorted_orders:
-            # Record the queue start time
+            
             queue_start_time = time.time()
-            processing_start_times[order.id] = queue_start_time
+            processing_start_times[order.order_id] = queue_start_time
 
-            # Start a thread to process the order
             thread = threading.Thread(target=process_order, args=(order, queue_start_time))
             threads.append(thread)
             thread.start()
 
-        # Wait for all threads to finish
         for thread in threads:
             thread.join()
 
         messages.success(request, "All pending orders have been processed.")
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"All pending orders have been processed.",
+        )
         return redirect("administration:dashboard")
 
     messages.error(request, "Invalid request method.")
@@ -186,6 +210,12 @@ def add_to_cart(request, product_id):
 
         if quantity <= 0 or quantity > product.stock or quantity > 5:
             messages.error(request, "Invalid quantity. Check stock availability. (Max: 5 items)")
+            Log.save_log(
+                log_type="ERROR",
+                log_details=f"Customer {request.user.customer} could not add {product.product_name} to cart due to stock availability",
+                customer=request.user.customer,
+            )
+            
             return redirect('product:products')
 
 
@@ -196,6 +226,11 @@ def add_to_cart(request, product_id):
 
             if cart[product_id] + quantity > 5:
                 messages.error(request, "Cannot add more than 5 of this product to the cart.")
+                Log.save_log(
+                    log_type="ERROR",
+                    log_details=f"Customer {request.user.customer} could not add {product.product_name} to cart due to stock availability",
+                    customer=request.user.customer,
+                )
                 return redirect('product:products')
 
 
@@ -209,6 +244,11 @@ def add_to_cart(request, product_id):
         request.session.modified = True
 
         messages.success(request, f"{quantity} x '{product.product_name}' added to cart.")
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Customer {request.user.customer} added {product.product_name} to cart.",
+            customer=request.user.customer,
+        )
     else:
         messages.error(request, "Invalid request method. Please use the form to add products to your cart.")
 
@@ -252,6 +292,11 @@ def remove_from_cart(request, product_id):
         request.session['cart'] = cart
         request.session.modified = True
         messages.success(request, "Product removed from your cart.")
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Customer {request.user.customer} removed product with id {product_id} from cart.",
+            customer=request.user.customer,
+        )
     else:
         messages.error(request, "Product not found in your cart.")
 
@@ -273,7 +318,14 @@ def confirm_cart(request):
         total_price += product.price * quantity
 
     if total_price > customer.budget:
+        
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Customer {request.user.customer} could not confirm cart due to lack of budget",
+            customer=request.user.customer,
+        )
         messages.error(request, "You do not have enough budget to confirm this cart.")
+        
         return redirect('product:my_card') 
 
 
@@ -282,19 +334,27 @@ def confirm_cart(request):
         total_price = product.price * quantity
 
         # Create an order
-        Order.objects.create(
+        order = Order.objects.create(
             customer=customer,
             product=product,
             quantity=quantity,
             total_price=total_price,
             order_status='PENDING',
         )
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Customer {request.user.customer} generated order {order}",
+            customer=request.user.customer,
+            order=order
+        )   
+        
 
 
     request.session['cart'] = {}
     request.session.modified = True
 
     messages.success(request, "Your order has been placed successfully!")
+    
     return redirect('index') 
 
 
@@ -307,11 +367,18 @@ def add_product(request):
 
 
         if product_name and stock and price:
+            
             Product.objects.create(
                 product_name=product_name,
                 stock=int(stock),
                 price=float(price),
             )
+            
+            Log.save_log(
+                log_type="INFO",
+                log_details=f"Admin added product {product_name} with {stock} quantity",
+            )   
+            
             messages.success(request, "Product added successfully!")
             return redirect('administration:dashboard')  
         else:
@@ -331,6 +398,11 @@ def edit_product(request, product_id):
 
 
         product.save()
+        
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Admin edited product {product.product_name} with {product.stock} quantity",
+        )   
 
         return redirect('administration:dashboard')
 
@@ -350,10 +422,21 @@ def decline_order(request, order_id):
     if order.order_status == 'PENDING':
         order.order_status = 'CANCELLED'
         order.save()
+        
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Order {order.order_id} has been declined",
+            order=order
+        )   
         messages.success(request, f"Order {order_id} has been declined.")
         
     elif order.order_status=="COMPLETED":
-        messages.error  (request, f"Order {order_id} has been completed so it will not be declined.")
+        Log.save_log(
+            log_type="ERROR",
+            log_details=f"Order {order.order_id} could not have been declined because its condition is completed.",
+            order=order
+        ) 
+        messages.error(request, f"Order {order_id} has been completed so it will not be declined.")
     else:
         messages.errorasd(request, f"Order {order_id} is already declined.")
 
@@ -368,3 +451,5 @@ def my_orders(request):
         orders = []
 
     return render(request, 'product/my_orders.html', {'orders': orders})
+
+
