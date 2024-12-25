@@ -20,7 +20,8 @@
                 </thead>
                 <tbody>
                     {% for order in orders %}
-                    <tr>
+                    <tr class="{% if order.order_status == 'PENDING' %}table-primary{% elif order.order_status == 'COMPLETED' %}table-success{% elif order.order_status == 'CANCELLED' %}table-danger{% endif %}">
+
                         <td>{{ order.order_id }}</td>
                         <td>{{ order.product.product_name }}</td>
                         <td>{{ order.quantity }}</td>

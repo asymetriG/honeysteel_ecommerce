@@ -17,8 +17,6 @@ processing_start_times = {}
 
 
 def calculate_priority(order):
-    
-    
     base_priority = 15 if order.customer.customer_type == "Premium" else 10
     wait_time = (now() - order.order_date).total_seconds()
     wait_time_weight = 0.5
@@ -161,7 +159,7 @@ def confirm_all_orders(request):
     if request.method == "GET":
         pending_orders = Order.objects.filter(order_status="PENDING")
 
-        # Sort orders by priority
+        
         sorted_orders = sorted(pending_orders, key=calculate_priority, reverse=True)
 
         threads = []
@@ -451,5 +449,3 @@ def my_orders(request):
         orders = []
 
     return render(request, 'product/my_orders.html', {'orders': orders})
-
-

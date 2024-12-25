@@ -25,6 +25,7 @@ class Order(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
     order_date = models.DateTimeField(auto_now_add=True,null=True,blank=True)
     order_status = models.CharField(max_length=10, choices=ORDER_STATUS_CHOICES, default='PENDING',null=True,blank=True)
+    progress = models.FloatField(default=0.0)
 
     def __str__(self):
         return f"Order {self.order_id} by {self.customer.customer_name}"
