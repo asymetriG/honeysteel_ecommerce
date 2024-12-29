@@ -192,6 +192,9 @@ def confirm_all_orders(request):
 
 def products(request):
     
+    if request.user.is_superuser:
+        return redirect("administration:dashboard")
+    
     if request.user.is_authenticated:
     
         products = Product.objects.all()
