@@ -5,7 +5,7 @@
     <h1 class="text-center mb-4">Welcome to Honeysteel Ecommerce {{request.user.username}}</h1>
     <hr>
 
-    <!-- Product Grid -->
+
     <div class="row">
         {% for product in products %}
         <div class="col-md-4 mb-4">
@@ -16,7 +16,7 @@
                         <strong>Price:</strong> ${{ product.price }} <br>
                         <strong>Stock:</strong> {{ product.stock }}
                     </p>
-                    <!-- Quantity Form -->
+    
                     <form method="POST" action="{% url 'product:add_to_cart' product.product_id %}">
                         {% csrf_token %}
                         <div class="input-group mb-3">

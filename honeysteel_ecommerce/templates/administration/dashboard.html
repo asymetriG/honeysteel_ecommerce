@@ -7,7 +7,7 @@
 <hr>
 
 <div class="row">
-    <!-- Customers Table -->
+
     <div class="col-md-6">
         <h3 class="text-center mb-4">Customers</h3>
         <div class="table-responsive">
@@ -26,7 +26,7 @@
                 <tbody>
                     {% for customer in customers %}
                     <tr class="{% if customer.customer_type == 'Premium' %}table-warning{% endif %}">
-                        <!-- Apply golden color for premium users -->
+
                         <td>{{ customer.customer_id }}</td>
                         <td>{{ customer.user.username }}</td>
                         <td>{{ customer.budget }}</td>
@@ -53,7 +53,7 @@
         </a>
     </div>
 
-    <!-- Products Table -->
+
     <div class="col-md-6">
         <h3 class="text-center mb-4">Products</h3>
         <div class="table-responsive">
@@ -115,7 +115,6 @@
 
 <br><hr><br>
 
-<!-- Orders Table -->
 <div class="row">
     <div class="col-md-12">
         <h3 class="text-center mb-4">Orders</h3>
@@ -137,7 +136,7 @@
                 <tbody>
                     {% for order in orders %}
                     <tr class="{% if order.order_status == 'PENDING' %}table-primary{% elif order.order_status == 'COMPLETED' %}table-success{% elif order.order_status == 'CANCELLED' %}table-danger{% endif %}">
-                        <!-- Apply color for order statuses -->
+
                         <td>{{ order.order_id }}</td>
                         <td>{{ order.customer.user.username }}</td>
                         <td>{{ order.customer.customer_type }}</td>
@@ -169,16 +168,16 @@
 
 <br>
 <script>
-    // Get data from the template
+
     const productNames = {{ product_names|safe }};
     const productStocks = {{ product_stocks|safe }};
     console.log(productNames);
     console.log(productStocks);
 
-    // Create the chart
+
     const ctx = document.getElementById('productChart').getContext('2d');
     const productChart = new Chart(ctx, {
-        type: 'doughnut', // or 'pie'
+        type: 'doughnut', 
         data: {
             labels: productNames,
             datasets: [{

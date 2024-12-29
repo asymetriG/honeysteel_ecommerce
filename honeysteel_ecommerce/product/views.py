@@ -10,7 +10,8 @@ from django.db import transaction
 from datetime import datetime
 from threading import Lock
 from django.utils.timezone import now
-from log.models import Log  # Assuming Log model is in logs app
+from log.models import Log  
+from django.contrib.auth.decorators import login_required
 
 product_locks = defaultdict(threading.Lock)
 processing_start_times = {}
@@ -191,11 +192,16 @@ def confirm_all_orders(request):
 
 def products(request):
     
-    products = Product.objects.all()
-
+    if request.user.is_authenticated:
     
-    context = {'products': products}
-    return render(request, 'product/products.html', context)
+        products = Product.objects.all()
+
+        
+        context = {'products': products}
+        return render(request, 'product/products.html', context)
+    
+    else:
+        return redirect("customer:login")
 
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, product_id=product_id)

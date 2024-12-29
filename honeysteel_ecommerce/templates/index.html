@@ -1,5 +1,51 @@
 {% extends "utils/layout.html" %}
 {% block body %}
-<br><br><br>
-<h2>Helo</h2>
+<br><br>
+
+
+<div class="container mt-4">
+    <div class="jumbotron text-center bg-light p-5 rounded">
+        <h1 class="display-4">Welcome to Honeysteel Ecommerce</h1>
+        <p class="lead">Find the best deals on premium products today!</p>
+        <a href="{% url 'product:products' %}" class="btn btn-primary btn-lg">Shop Now</a>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Featured Products</h2>
+    <div class="row">
+        {% for product in products %}
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.product_name }}</h5>
+                    <p class="card-text">Price: ${{ product.price }}</p>
+                    <p class="card-text">Stock: {{ product.stock }}</p>
+                    <a href="{% url 'product:products' %}" class="btn btn-primary">View Product</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+<!-- Call to Action -->
+<div class="container mt-5">
+    <div class="bg-primary text-white text-center p-4 rounded">
+        <h3>Sign Up for Exclusive Offers!</h3>
+        <p>Join Honeysteel Ecommerce and stay updated with our latest deals and promotions.</p>
+        <a href="{% url 'customer:register' %}" class="btn btn-light">Sign Up</a>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="container mt-5">
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© 2024 Honeysteel Ecommerce. All Rights Reserved.</span>
+        </div>
+    </footer>
+</div>
+
 {% endblock body %}

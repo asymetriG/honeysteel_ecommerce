@@ -5,13 +5,13 @@ from django.contrib.auth.models import User
 from django.http import JsonResponse
 
 
-# Create your views here.
 def index(request):
-    return render(request, 'index.html')
+    featured_products = Product.objects.all()[:3]
+    return render(request, 'index.html',{"products":featured_products})
 
 
 def dashboard(request):
-    customers = Customer.objects.all()  # Fetch all customers from the database
+    customers = Customer.objects.all() 
     products = Product.objects.all()
     orders = Order.objects.all()
     
@@ -36,25 +36,22 @@ def dashboard(request):
 
 def generate_customers(request):
     if request.method == "POST":
-        # Clear existing customers (optional)
-        # Customer.objects.all().delete()
 
-        # List of sample names
+
         names = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah"]
 
-        # Generate 5-10 customers
+
         for i in range(random.randint(5, 10)):
             name = random.choice(names)
-            names.remove(name)  # Ensure unique names
+            names.remove(name) 
 
-            # Randomize user creation (this assumes username uniqueness)
+
             user = User.objects.create_user(username=f"user_{i}_{random.randint(100, 999)}", password="password123")
 
-            # Assign budget and customer type
             budget = round(random.uniform(500, 3000), 2)
             customer_type = "Premium" if i < 2 else "Normal"  # Ensure at least 2 "Premium" customers
 
-            # Create customer instance
+
             Customer.objects.create(
                 user=user,
                 customer_name=name,

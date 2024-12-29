@@ -7,13 +7,13 @@ from product.models import Order
 
 
 def customer_orders(request, customer_id):
-    # Fetch the customer
+
     customer = get_object_or_404(Customer, pk=customer_id)
 
-    # Fetch orders for the customer
+
     orders = Order.objects.filter(customer=customer).order_by('-order_date')
 
-    # Pass data to the template
+
     context = {
         'customer': customer,
         'orders': orders,
@@ -74,22 +74,21 @@ def edit_customer(request, customer_id):
     customer = get_object_or_404(Customer, customer_id=customer_id)
 
     if request.method == "POST":
-        # Get updated details from the form
+
         customer_name = request.POST.get("customer_name")
         budget = request.POST.get("budget")
         customer_type = request.POST.get("customer_type")
 
-        # Update customer details
         if customer_name:
             customer.user.username = customer_name
-            customer.user.save()  # Save the User model changes
+            customer.user.save() 
         if budget:
             customer.budget = float(budget)
         if customer_type:
             customer.customer_type = customer_type
 
-        customer.save()  # Save the Customer model changes
+        customer.save() 
         messages.success(request, f"Customer {customer.user.username} updated successfully!")
-        return redirect('administration:dashboard')  # Redirect back to the dashboard
+        return redirect('administration:dashboard')
 
     return render(request, 'customer/edit_customer.html', {'customer': customer})
