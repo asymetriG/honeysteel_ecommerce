@@ -57,13 +57,14 @@ def process_order(order,queue_start_time):
             customer = order.customer.__class__.objects.select_for_update().get(pk=order.customer.pk)
 
             if order.quantity > product.stock:
+
                 
                 order.order_status = "CANCELLED"
                 order.save()
                 
                 Log.save_log(
                     log_type="ERROR",
-                    log_details=f"Order {order.id} canceled due to lack of stock",
+                    log_details=f"Order {order.order_id} canceled due to lack of stock",
                     customer=order.customer,
                     order=order,
                 )
@@ -445,7 +446,7 @@ def decline_order(request, order_id):
         ) 
         messages.error(request, f"Order {order_id} has been completed so it will not be declined.")
     else:
-        messages.errorasd(request, f"Order {order_id} is already declined.")
+        messages.error(request, f"Order {order_id} is already declined.")
 
     return redirect('administration:dashboard')
 

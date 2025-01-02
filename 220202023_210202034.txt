@@ -1,0 +1,1732 @@
+from django.db import models
+from django.contrib.auth.models import User
+
+
+# Create your models here.
+class AdminUser(models.Model):
+    rank = models.CharField(max_length=255,null=True,blank=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="adminuser",null=True,blank=True)
+
+from django.contrib import admindocs
+from django.urls import path
+from . import views
+from django.conf import settings
+from django.conf.urls.static import static
+
+app_name = "administration"
+
+urlpatterns = [
+    path("dashboard/",views.dashboard,name="dashboard"),
+    path('generate-customers/', views.generate_customers, name='generate_customers'),
+
+]
+
+
+from django.shortcuts import render,redirect
+from product.models import Customer,Product,Order
+import random
+from django.contrib.auth.models import User
+from django.http import JsonResponse
+
+
+def index(request):
+    featured_products = Product.objects.all()[:3]
+    return render(request, 'index.html',{"products":featured_products})
+
+
+def dashboard(request):
+    customers = Customer.objects.all() 
+    products = Product.objects.all()
+    orders = Order.objects.all()
+    
+    product_names = [product.product_name for product in products]
+    product_stocks = [product.stock for product in products]
+    low_stock_products = [product for product in products if product.stock < 10]
+
+
+    context = {
+        'customers': customers,
+        'products': products,
+        'orders': orders,
+        'product_names': product_names,
+        'product_stocks': product_stocks,
+        'low_stock_products': low_stock_products,  
+
+    }
+
+    return render(request, 'administration/dashboard.html', context)
+
+
+
+def generate_customers(request):
+    if request.method == "POST":
+
+
+        names = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah"]
+
+
+        for i in range(random.randint(5, 10)):
+            name = random.choice(names)
+            names.remove(name) 
+
+
+            user = User.objects.create_user(username=f"user_{i}_{random.randint(100, 999)}", password="password123")
+
+            budget = round(random.uniform(500, 3000), 2)
+            customer_type = "Premium" if i < 2 else "Normal"  # Ensure at least 2 "Premium" customers
+
+
+            Customer.objects.create(
+                user=user,
+                customer_name=name,
+                budget=budget,
+                customer_type=customer_type,
+                total_spent=0.0
+            )
+
+        return JsonResponse({"success": True, "message": "Random customers generated successfully!"})
+    else:
+        return JsonResponse({"success": False, "message": "Invalid request method!"})
+
+
+from django.db import models
+from django.contrib.auth.models import User
+
+# Create your models here.
+class Customer(models.Model):
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="customer")
+    
+    customer_id = models.AutoField(primary_key=True)
+    customer_name = models.CharField(max_length=255,null=True,blank=True)
+    budget = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
+    customer_type = models.CharField(max_length=50,null=True,blank=True)
+    total_spent = models.DecimalField(max_digits=10, decimal_places=2, default=0.0,null=True,blank=True)
+
+from django.contrib import admindocs
+from django.urls import path
+from . import views
+from django.conf import settings
+from django.conf.urls.static import static
+
+app_name = "customer"
+
+urlpatterns = [
+    path('login/', views.login_view, name='login'),
+    path('register/', views.register_view, name='register'),
+    path('logout/', views.logout_view, name='logout'),
+    path('edit-customer/<int:customer_id>/', views.edit_customer, name='edit_customer'),
+    path('customer-orders/<int:customer_id>/', views.customer_orders, name='customer_orders'),
+]
+
+from django.shortcuts import render,redirect,get_object_or_404
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate,login,logout
+from django.contrib import messages
+from customer.models import Customer
+from product.models import Order
+
+
+def customer_orders(request, customer_id):
+
+    customer = get_object_or_404(Customer, pk=customer_id)
+
+
+    orders = Order.objects.filter(customer=customer).order_by('-order_date')
+
+
+    context = {
+        'customer': customer,
+        'orders': orders,
+    }
+    return render(request, 'customer/customer_orders.html', context)
+
+def login_view(request):
+    
+    if request.method == 'POST':
+        
+        username = request.POST['username']
+        password = request.POST['password']
+        
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            login(request, user)
+            
+            return redirect('index') 
+        else:
+            messages.error(request, 'Invalid username or password.')
+            
+    return render(request, 'customer/login.html')
+
+def register_view(request):
+    if request.method == 'POST':
+        
+        username = request.POST['username']
+        email = request.POST['email']
+        password1 = request.POST['password']
+        password2 = request.POST['password2']
+        first_name = request.POST['first_name']
+        last_name = request.POST['last_name']
+        
+        if password1 == password2:
+            try:
+                User.objects.create_user(username=username, email=email, password=password1,first_name=first_name,last_name=last_name)
+                
+                messages.success(request, 'Account created successfully!')
+                
+                return redirect('customer:login')
+            except:
+                messages.error(request, 'Username already exists.')
+        else:
+            messages.error(request, 'Passwords do not match.')
+    return render(request, 'customer/register.html')
+
+
+
+def logout_view(request):
+    logout(request)
+    messages.success(request, "You have been logged out successfully.")
+    return redirect('customer:login')  
+
+
+
+def edit_customer(request, customer_id):
+    customer = get_object_or_404(Customer, customer_id=customer_id)
+
+    if request.method == "POST":
+
+        customer_name = request.POST.get("customer_name")
+        budget = request.POST.get("budget")
+        customer_type = request.POST.get("customer_type")
+
+        if customer_name:
+            customer.user.username = customer_name
+            customer.user.save() 
+        if budget:
+            customer.budget = float(budget)
+        if customer_type:
+            customer.customer_type = customer_type
+
+        customer.save() 
+        messages.success(request, f"Customer {customer.user.username} updated successfully!")
+        return redirect('administration:dashboard')
+
+    return render(request, 'customer/edit_customer.html', {'customer': customer})
+
+
+"""
+URL configuration for honeysteel_ecommerce project.
+
+The `urlpatterns` list routes URLs to views. For more information please see:
+    https://docs.djangoproject.com/en/5.0/topics/http/urls/
+Examples:
+Function views
+    1. Add an import:  from my_app import views
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+Class-based views
+    1. Add an import:  from other_app.views import Home
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+Including another URLconf
+    1. Import the include() function: from django.urls import include, path
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+"""
+from django.contrib import admin
+from django.urls import path,include
+from administration.views import index as main_page
+from django.conf import settings
+from django.conf.urls.static import static
+
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path("",main_page,name="index"),
+    path("administration/" , include("administration.urls")),
+    path("customer/" , include("customer.urls")),
+    path("product/" , include("product.urls")),
+    path("log/" , include("log.urls")),
+]
+
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+from django.db import models
+from customer.models import Customer
+from product.models import Order
+from django.utils.timezone import now
+
+# Create your models here.
+class Log(models.Model):
+    LOG_TYPE_CHOICES = [
+        ('INFO', 'Info'),
+        ('ERROR', 'Error'),
+        ('WARNING', 'Warning'),
+    ]
+
+    log_id = models.AutoField(primary_key=True)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="logs",null=True,blank=True)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="logs", null=True, blank=True)
+    log_date = models.DateTimeField(auto_now_add=True,null=True,blank=True)
+    log_type = models.CharField(max_length=10, choices=LOG_TYPE_CHOICES, default='INFO',null=True,blank=True)
+    log_details = models.TextField(null=True,blank=True)
+
+    def __str__(self):
+        return f"Log {self.log_id} - {self.log_type}"
+    
+    
+    @staticmethod
+    def save_log(log_type, log_details, customer=None, order=None):
+        log_entry = Log(
+            log_type=log_type,
+            log_details=log_details,
+            customer=customer,
+            order=order,
+            log_date=now()  # Use the current timestamp
+        )
+        log_entry.save()
+
+
+from django.urls import path
+from . import views
+
+app_name = "log"
+
+urlpatterns = [
+    path('logs/', views.logs_page, name='logs_page'),
+]
+
+
+
+from django.shortcuts import render
+from django.core.paginator import Paginator
+from log.models import Log 
+
+
+# Create your views here.
+def logs_page(request):
+    logs = Log.objects.all().order_by('-log_date')  
+    paginator = Paginator(logs, 10) 
+
+    page_number = request.GET.get('page')  
+    page_obj = paginator.get_page(page_number)  
+
+    context = {
+        'page_obj': page_obj,  
+    }
+    return render(request, 'log/logs.html', context)
+
+
+from django.db import models
+from customer.models import Customer
+
+# Create your models here.
+class Product(models.Model):
+    product_id = models.AutoField(primary_key=True)
+    product_name = models.CharField(max_length=255,null=True,blank=True)
+    stock = models.PositiveIntegerField(null=True,blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
+
+    def __str__(self):
+        return self.product_name
+
+class Order(models.Model):
+    ORDER_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    
+    order_id = models.AutoField(primary_key=True)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="orders",null=True,blank=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="orders",null=True,blank=True)
+    quantity = models.PositiveIntegerField(null=True,blank=True)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
+    order_date = models.DateTimeField(auto_now_add=True,null=True,blank=True)
+    order_status = models.CharField(max_length=10, choices=ORDER_STATUS_CHOICES, default='PENDING',null=True,blank=True)
+    progress = models.FloatField(default=0.0)
+
+    def __str__(self):
+        return f"Order {self.order_id} by {self.customer.customer_name}"
+
+
+
+
+from django.urls import path
+from . import views
+
+app_name = "product"
+
+urlpatterns = [
+    path("edit_product/<int:product_id>/",views.edit_product,name="edit_product"),
+    path('add-to-cart/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
+    path('my-card/', views.my_card, name='my_card'),  
+    path('remove-from-cart/<int:product_id>/', views.remove_from_cart, name='remove_from_cart'),
+    path('products',views.products,name="products"),
+    path('add-product/', views.add_product, name='add_product'), 
+    path('confirm_cart',views.confirm_cart,name="confirm_cart"),
+    path('decline-order/<int:order_id>/', views.decline_order, name='decline_order'),
+    path('my-orders/', views.my_orders, name='my_orders'),
+    path('confirm-all-orders/', views.confirm_all_orders, name='confirm_all_orders'),
+    path('reset-db/', views.reset_db, name='reset_db'),
+]
+
+from django.shortcuts import render,get_list_or_404,get_object_or_404,redirect
+from .models import Product,Order
+from customer.models import Customer
+from django.contrib import messages
+import threading
+import time,random
+from collections import defaultdict
+from django.contrib.auth.models import User
+from django.db import transaction
+from datetime import datetime
+from threading import Lock
+from django.utils.timezone import now
+from log.models import Log  
+from django.contrib.auth.decorators import login_required
+
+product_locks = defaultdict(threading.Lock)
+processing_start_times = {}
+
+
+def calculate_priority(order):
+    base_priority = 15 if order.customer.customer_type == "Premium" else 10
+    wait_time = (now() - order.order_date).total_seconds()
+    wait_time_weight = 0.5
+    return base_priority + (wait_time * wait_time_weight)
+
+
+
+def process_order(order,queue_start_time):
+
+    global product_locks,processing_start_times
+
+
+    product_lock = product_locks[order.product.product_id]
+
+    with product_lock:  
+        with transaction.atomic():  
+            
+            current_time = time.time()
+            
+            if current_time - queue_start_time > 15:
+            
+                order.order_status = "CANCELLED"
+                order.save()
+
+              
+                Log.save_log(
+                    log_type="ERROR",
+                    log_details=f"Order {order.id} canceled due to timeout after 15 seconds.",
+                    customer=order.customer,
+                    order=order,
+                )
+                return
+            
+            product = Product.objects.select_for_update().get(product_id=order.product.product_id)
+
+           
+            customer = order.customer.__class__.objects.select_for_update().get(pk=order.customer.pk)
+
+            if order.quantity > product.stock:
+                
+                order.order_status = "CANCELLED"
+                order.save()
+                
+                Log.save_log(
+                    log_type="ERROR",
+                    log_details=f"Order {order.id} canceled due to lack of stock",
+                    customer=order.customer,
+                    order=order,
+                )
+                return
+
+           
+            product.stock -= order.quantity
+            product.save()
+
+       
+            customer.budget -= order.total_price
+
+    
+            customer.total_spent += order.total_price
+
+            
+            if customer.total_spent > 2000:
+                customer.customer_type = "Premium"
+                
+                Log.save_log(
+                    log_type="INFO",
+                    log_details=f"Customer {order.customer} became a premium customer",
+                    customer=order.customer,
+                    order=order,
+                )
+
+           
+            customer.save()
+
+            
+            order.order_status = "COMPLETED"
+            order.save()
+            
+            Log.save_log(
+                    log_type="INFO",
+                    log_details=f"Order {order.order_id} processed",
+                    customer=order.customer,
+                    order=order,
+            )
+            
+            processing_start_times[order.order_id] = time.time()
+        
+        
+def reset_db(request):
+ 
+    Order.objects.all().delete()
+
+    Product.objects.all().delete()
+
+    Log.objects.all().delete()
+
+    Customer.objects.all().delete()
+    User.objects.filter(is_superuser=False).delete() 
+
+    
+    predefined_products = [
+        {"product_id": 1, "product_name": "Product1", "stock": 500, "price": 100},
+        {"product_id": 2, "product_name": "Product2", "stock": 10, "price": 50},
+        {"product_id": 3, "product_name": "Product3", "stock": 200, "price": 45},
+        {"product_id": 4, "product_name": "Product4", "stock": 75, "price": 75},
+        {"product_id": 5, "product_name": "Product5", "stock": 0, "price": 500},
+    ]
+
+    for product_data in predefined_products:
+        Product.objects.create(
+            product_id=product_data["product_id"],
+            product_name=product_data["product_name"],
+            stock=product_data["stock"],
+            price=product_data["price"],
+        )
+
+
+    usernames = [f"user{i}" for i in range(1, 11)]  
+    for i, username in enumerate(usernames):
+        user = User.objects.create_user(username=username, password="password123")
+        customer_type = "Premium" if i < 2 else "Normal"  
+        Customer.objects.create(
+            user=user,
+            customer_name=username.capitalize(),
+            budget=random.randint(500, 3000),
+            customer_type=customer_type,
+            total_spent=0,
+        )
+
+    messages.success(request, "Database reset successfully!")
+    
+    Log.save_log(
+        log_type="INFO",
+        log_details="Database reset by admin.",
+    )
+    return redirect("administration:dashboard")  
+        
+def confirm_all_orders(request):
+    if request.method == "GET":
+        pending_orders = Order.objects.filter(order_status="PENDING")
+
+        
+        sorted_orders = sorted(pending_orders, key=calculate_priority, reverse=True)
+
+        threads = []
+        processing_start_times.clear()  
+
+        for order in sorted_orders:
+            
+            queue_start_time = time.time()
+            processing_start_times[order.order_id] = queue_start_time
+
+            thread = threading.Thread(target=process_order, args=(order, queue_start_time))
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        messages.success(request, "All pending orders have been processed.")
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"All pending orders have been processed.",
+        )
+        return redirect("administration:dashboard")
+
+    messages.error(request, "Invalid request method.")
+    return redirect("administration:dashboard")
+
+
+
+def products(request):
+    
+    if request.user.is_superuser:
+        return redirect("administration:dashboard")
+    
+    if request.user.is_authenticated:
+    
+        products = Product.objects.all()
+
+        
+        context = {'products': products}
+        return render(request, 'product/products.html', context)
+    
+    else:
+        return redirect("customer:login")
+
+def add_to_cart(request, product_id):
+    product = get_object_or_404(Product, product_id=product_id)
+    product_id = str(product_id)  
+
+    if request.method == "POST":
+
+        quantity = int(request.POST.get("quantity", 0))
+
+
+        if quantity <= 0 or quantity > product.stock or quantity > 5:
+            messages.error(request, "Invalid quantity. Check stock availability. (Max: 5 items)")
+            Log.save_log(
+                log_type="ERROR",
+                log_details=f"Customer {request.user.customer} could not add {product.product_name} to cart due to stock availability",
+                customer=request.user.customer,
+            )
+            
+            return redirect('product:products')
+
+
+        cart = request.session.get('cart', {})
+
+
+        if product_id in cart:
+
+            if cart[product_id] + quantity > 5:
+                messages.error(request, "Cannot add more than 5 of this product to the cart.")
+                Log.save_log(
+                    log_type="ERROR",
+                    log_details=f"Customer {request.user.customer} could not add {product.product_name} to cart due to stock availability",
+                    customer=request.user.customer,
+                )
+                return redirect('product:products')
+
+
+            cart[product_id] += quantity
+        else:
+
+            cart[product_id] = quantity
+
+
+        request.session['cart'] = cart
+        request.session.modified = True
+
+        messages.success(request, f"{quantity} x '{product.product_name}' added to cart.")
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Customer {request.user.customer} added {product.product_name} to cart.",
+            customer=request.user.customer,
+        )
+    else:
+        messages.error(request, "Invalid request method. Please use the form to add products to your cart.")
+
+    return redirect('product:products')
+
+def my_card(request):
+
+    cart = request.session.get('cart', {})
+    cart_items = []
+
+
+    for product_id, quantity in cart.items():
+        product = get_object_or_404(Product, product_id=product_id)
+        cart_items.append({
+            'product': product,
+            'quantity': quantity,
+            'total_price': product.price * quantity
+        })
+
+    total_price = sum(item['total_price'] for item in cart_items)
+
+
+    customer = getattr(request.user, 'customer', None)
+    if customer:
+        budget = customer.budget
+    else:
+        budget = None 
+
+    context = {
+        'cart_items': cart_items,
+        'total_price': total_price,
+        'budget': budget,
+    }
+
+    return render(request, 'product/my_card.html', context)
+
+def remove_from_cart(request, product_id):
+    cart = request.session.get('cart', {})
+    if str(product_id) in cart:
+        del cart[str(product_id)]
+        request.session['cart'] = cart
+        request.session.modified = True
+        messages.success(request, "Product removed from your cart.")
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Customer {request.user.customer} removed product with id {product_id} from cart.",
+            customer=request.user.customer,
+        )
+    else:
+        messages.error(request, "Product not found in your cart.")
+
+    return redirect('product:my_card') 
+
+
+def confirm_cart(request):
+    if not request.user.is_authenticated:
+        messages.error(request, "You must be logged in to confirm your cart.")
+        return redirect('customer:login')
+
+
+    cart = request.session.get('cart', {})
+    customer = request.user.customer  
+
+    total_price = 0
+    for product_id, quantity in cart.items():
+        product = get_object_or_404(Product, product_id=product_id)
+        total_price += product.price * quantity
+
+    if total_price > customer.budget:
+        
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Customer {request.user.customer} could not confirm cart due to lack of budget",
+            customer=request.user.customer,
+        )
+        messages.error(request, "You do not have enough budget to confirm this cart.")
+        
+        return redirect('product:my_card') 
+
+
+    for product_id, quantity in cart.items():
+        product = get_object_or_404(Product, product_id=product_id)
+        total_price = product.price * quantity
+
+        # Create an order
+        order = Order.objects.create(
+            customer=customer,
+            product=product,
+            quantity=quantity,
+            total_price=total_price,
+            order_status='PENDING',
+        )
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Customer {request.user.customer} generated order {order}",
+            customer=request.user.customer,
+            order=order
+        )   
+        
+
+
+    request.session['cart'] = {}
+    request.session.modified = True
+
+    messages.success(request, "Your order has been placed successfully!")
+    
+    return redirect('index') 
+
+
+def add_product(request):
+    if request.method == 'POST':
+
+        product_name = request.POST.get('product_name')
+        stock = request.POST.get('stock')
+        price = request.POST.get('price')
+
+
+        if product_name and stock and price:
+            
+            Product.objects.create(
+                product_name=product_name,
+                stock=int(stock),
+                price=float(price),
+            )
+            
+            Log.save_log(
+                log_type="INFO",
+                log_details=f"Admin added product {product_name} with {stock} quantity",
+            )   
+            
+            messages.success(request, "Product added successfully!")
+            return redirect('administration:dashboard')  
+        else:
+            messages.error(request, "All fields are required!")
+
+    return render(request, 'product/add_product.html')
+
+def edit_product(request, product_id):
+
+    product = get_object_or_404(Product, product_id=product_id)
+
+    if request.method == "POST":
+
+        product.product_name = request.POST.get('product_name')
+        product.stock = request.POST.get('stock')
+        product.price = request.POST.get('price')
+
+
+        product.save()
+        
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Admin edited product {product.product_name} with {product.stock} quantity",
+        )   
+
+        return redirect('administration:dashboard')
+
+
+    context = {'product': product}
+
+    return render(request, "product/edit_product.html", context)
+
+
+
+
+def decline_order(request, order_id):
+
+    order = get_object_or_404(Order, order_id=order_id)
+
+
+    if order.order_status == 'PENDING':
+        order.order_status = 'CANCELLED'
+        order.save()
+        
+        Log.save_log(
+            log_type="INFO",
+            log_details=f"Order {order.order_id} has been declined",
+            order=order
+        )   
+        messages.success(request, f"Order {order_id} has been declined.")
+        
+    elif order.order_status=="COMPLETED":
+        Log.save_log(
+            log_type="ERROR",
+            log_details=f"Order {order.order_id} could not have been declined because its condition is completed.",
+            order=order
+        ) 
+        messages.error(request, f"Order {order_id} has been completed so it will not be declined.")
+    else:
+        messages.errorasd(request, f"Order {order_id} is already declined.")
+
+    return redirect('administration:dashboard')
+
+
+def my_orders(request):
+    
+    if hasattr(request.user, 'customer'):
+        orders = Order.objects.filter(customer=request.user.customer).order_by('-order_date')
+    else:
+        orders = []
+
+    return render(request, 'product/my_orders.html', {'orders': orders})
+
+
+{% extends "utils/layout.html" %}
+{% load static %}
+
+{% block body %}
+<br><br><br>
+<h2>DASHBOARD</h2>
+<hr>
+
+<div class="row">
+
+    <div class="col-md-6">
+        <h3 class="text-center mb-4">Customers</h3>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Customer ID</th>
+                        <th>Customer Name</th>
+                        <th>Budget</th>
+                        <th>Customer Type</th>
+                        <th>Total Spent</th>
+                        <th>Edit</th>
+                        <th>Show Orders</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                    <tr class="{% if customer.customer_type == 'Premium' %}table-warning{% endif %}">
+
+                        <td>{{ customer.customer_id }}</td>
+                        <td>{{ customer.user.username }}</td>
+                        <td>{{ customer.budget }}</td>
+                        <td>{{ customer.customer_type }}</td>
+                        <td>{{ customer.total_spent }}</td>
+                        <td>
+                            <a href="{% url 'customer:edit_customer' customer.customer_id %}" class="btn btn-warning btn-sm">Edit</a>
+                        </td>
+                        <td>
+                            <a href="{% url 'customer:customer_orders' customer.customer_id %}" class="btn btn-info btn-sm">Orders</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No customers found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <a href="{% url 'product:reset_db' %}" class="btn btn-danger w-100 mt-3" 
+        onclick="return confirm('Are you sure you want to reset the database? This action cannot be undone.');">
+        Reset DB
+        </a>
+    </div>
+
+
+    <div class="col-md-6">
+        <h3 class="text-center mb-4">Products</h3>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Product ID</th>
+                        <th>Product Name</th>
+                        <th>Stock</th>
+                        <th>Price</th>
+                        <th>Edit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>{{ product.product_id }}</td>
+                        <td>{{ product.product_name }}</td>
+                        <td>{{ product.stock }}</td>
+                        <td>{{ product.price }}</td>
+                        <td>
+                            <a href="{% url 'product:edit_product' product.product_id %}" class="btn btn-warning btn-sm">
+                                Edit
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No products found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="container mt-4">
+                <h3 class="text-center">Product Stock Distribution</h3>
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        
+                        <canvas id="productChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            {% if low_stock_products %}
+            <br>
+            <div class="alert alert-warning">
+                <h4 class="alert-heading">Low Stock Warning!</h4>
+                <p>The following products have less than 10 units in stock:</p>
+                <ul>
+                    {% for product in low_stock_products %}
+                    <li><strong>{{ product.product_name }}</strong>: {{ product.stock }} units left</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %} 
+                        <a href="{% url 'product:add_product' %}" class="btn btn-success w-100 mt-3">Add Product</a>
+                    </div>
+                </div>
+            </div>
+
+<br><hr><br>
+
+<div class="row">
+    <div class="col-md-12">
+        <h3 class="text-center mb-4">Orders</h3>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Customer Type</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Total Price</th>
+                        <th>Status</th>
+                        <th>Order Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr class="{% if order.order_status == 'PENDING' %}table-primary{% elif order.order_status == 'COMPLETED' %}table-success{% elif order.order_status == 'CANCELLED' %}table-danger{% endif %}">
+
+                        <td>{{ order.order_id }}</td>
+                        <td>{{ order.customer.user.username }}</td>
+                        <td>{{ order.customer.customer_type }}</td>
+                        <td>{{ order.product.product_name }}</td>
+                        <td>{{ order.quantity }}</td>
+                        <td>{{ order.total_price }}</td>
+                        <td>{{ order.order_status }}</td>
+                        <td>{{ order.order_date }}</td>
+                        <td>
+                            <a href="{% url 'product:decline_order' order.order_id %}" class="btn btn-sm btn-danger">
+                                Decline Order
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center">No orders found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <a href="{% url 'product:confirm_all_orders' %}" class="btn btn-primary w-100" 
+            onclick="return confirm('Are you sure you want to confirm all orders?');">
+            Confirm All Orders
+            </a>
+        </div>
+    </div>
+</div>
+
+<br>
+<script>
+
+    const productNames = {{ product_names|safe }};
+    const productStocks = {{ product_stocks|safe }};
+    console.log(productNames);
+    console.log(productStocks);
+
+
+    const ctx = document.getElementById('productChart').getContext('2d');
+    const productChart = new Chart(ctx, {
+        type: 'doughnut', 
+        data: {
+            labels: productNames,
+            datasets: [{
+                label: 'Stock',
+                data: productStocks,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.6)',
+                    'rgba(54, 162, 235, 0.6)',
+                    'rgba(255, 206, 86, 0.6)',
+                    'rgba(75, 192, 192, 0.6)',
+                    'rgba(153, 102, 255, 0.6)',
+                    'rgba(255, 159, 64, 0.6)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Product Stock Distribution'
+                }
+            }
+        }
+    });
+</script>
+{% endblock body %}
+
+
+{% extends "utils/layout.html" %}
+{% load static %}
+
+{% block body %}
+<br><br><br>
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Orders for {{ customer.user.username }}</h2>
+    <hr>
+
+    {% if orders %}
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Total Price</th>
+                        <th>Status</th>
+                        <th>Order Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>{{ order.order_id }}</td>
+                        <td>{{ order.product.product_name }}</td>
+                        <td>{{ order.quantity }}</td>
+                        <td>${{ order.total_price }}</td>
+                        <td>{{ order.order_status }}</td>
+                        <td>{{ order.order_date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-center">No orders found for this customer.</p>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{% url 'administration:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock body %}
+
+
+{% extends "utils/layout.html" %}
+{% block body %}
+<br><br><br>
+<div class="container mt-5">
+    <h2 class="text-center">Edit Customer</h2>
+    <hr>
+    <form method="POST" class="w-100 mx-auto border p-4 rounded shadow">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="customer_name" class="form-label">Customer Name</label>
+            <input type="text" class="form-control" id="customer_name" name="customer_name" value="{{ customer.user.username }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="budget" class="form-label">Budget</label>
+            <input type="number" step="0.01" class="form-control" id="budget" name="budget" value="{{ customer.budget }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="customer_type" class="form-label">Customer Type</label>
+            <select class="form-control" id="customer_type" name="customer_type" required>
+                <option value="Normal" {% if customer.customer_type == "Normal" %}selected{% endif %}>Normal</option>
+                <option value="Premium" {% if customer.customer_type == "Premium" %}selected{% endif %}>Premium</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-success w-100">Save Changes</button>
+        <a href="{% url 'administration:dashboard' %}" class="btn btn-secondary w-100 mt-2">Cancel</a>
+    </form>
+</div>
+{% endblock body %}
+
+
+{% extends "utils/layout.html" %}
+{% load static %}
+{% block body %}
+<div class="container min-vh-100 d-flex align-items-center"> 
+    {% comment %} password123 user passwords {% endcomment %}
+    <div class="row w-100">
+
+        <div class="col-md-6 d-flex justify-content-center">
+            <img src="{% static 'img/logo.png' %}" alt="Logo" class="img-fluid" style="width: 50rem;">
+        </div>
+        
+
+        <div class="col-md-6 d-flex justify-content-center">
+            <div class="col-md-8">
+                <h3 class="text-center mb-4">Login</h3>
+                <form method="POST" action="{% url 'customer:login' %}" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe" name="remember_me">
+                        <label class="form-check-label" for="rememberMe">Remember me</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                    <div class="text-center mt-3">
+                        <p>Don't have an account? <a href="{% url 'customer:register' %}">Register here</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock body %}
+
+
+{% extends "utils/layout.html" %}
+{% load static %}
+{% block body %}
+<div class="container min-vh-100 d-flex align-items-center">
+    <div class="row w-100">
+
+        <div class="col-md-6 d-flex justify-content-center">
+            <img src="{% static 'img/logo.png' %}" alt="Logo" class="img-fluid" style="width: 50rem; height: auto;">
+        </div>
+        
+
+        <div class="col-md-6 d-flex justify-content-center">
+            <div class="col-md-8">
+                <h3 class="text-center mb-4">Register</h3>
+                <form method="POST" action="{% url 'customer:register' %}" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Choose a username" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" placeholder="First Name" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Last Name" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please enter a valid email address.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Enter a password" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password2" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="password2" name="password2" placeholder="Confirm your password" required autocomplete="off">
+                        <div class="invalid-feedback">
+                            Please fill this area.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Register</button>
+                    <div class="text-center mt-3">
+                        <p>Already have an account? <a href="{% url 'customer:login' %}">Login here</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock body %}
+
+
+{% extends "utils/layout.html" %}
+{% load static %}
+
+{% block body %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Logs</h2>
+    <hr>
+
+    {% if page_obj.object_list %}
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Log ID</th>
+                        <th>Customer</th>
+                        <th>Order</th>
+                        <th>Log Date</th>
+                        <th>Log Type</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in page_obj.object_list %}
+                    <tr>
+                        <td>{{ log.log_id }}</td>
+
+
+                        {% if log.customer %}
+                        <td>{{ log.customer.user.username}}</td>
+                        {% else %}
+                        <td>Not Available</td>
+                        {% endif %}
+
+
+                        {% if log.order %}
+                        <td>{{ log.order.order_id }}</td>
+                        {% else %}
+                        <td>Not Available</td>
+                        {% endif %}
+                        
+                        <td>{{ log.log_date }}</td>
+                        <td class="{% if log.log_type == 'ERROR' %}text-danger{% elif log.log_type == 'WARNING' %}text-warning{% else %}text-info{% endif %}">
+                            {{ log.log_type }}
+                        </td>
+                        <td>{{ log.log_details }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+
+        <nav aria-label="Log pagination">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1" aria-label="First">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                {% if num == page_obj.number %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:-3 and num < page_obj.number|add:3 %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% else %}
+        <p class="text-center">No logs found.</p>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{% url 'administration:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock body %}
+
+
+{% extends "utils/layout.html" %}
+{% block body %}
+<br><br><br>
+<div class="container">
+    <h2 class="text-center mb-4">Add Product</h2>
+    <hr>
+
+    <form method="POST" class="w-100 mx-auto border p-4 rounded shadow">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="product_name" class="form-label">Product Name</label>
+            <input type="text" class="form-control" id="product_name" name="product_name" required>
+        </div>
+        <div class="mb-3">
+            <label for="stock" class="form-label">Stock</label>
+            <input type="number" class="form-control" id="stock" name="stock" min="1" required>
+        </div>
+        <div class="mb-3">
+            <label for="price" class="form-label">Price</label>
+            <input type="number" step="0.01" class="form-control" id="price" name="price" min="0.01" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Add Product</button>
+        <a href="{% url 'administration:dashboard' %}" class="btn btn-secondary w-100 mt-2">Cancel</a>
+    </form>
+</div>
+{% endblock body %}
+
+{% extends "utils/layout.html" %}
+{% load static %}
+
+{% block body %}
+<br><br><br>
+<h2 class="text-center">Edit Product</h2>
+    <hr>
+    <form method="POST" class="w-100 mx-auto border p-4 rounded shadow">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="product_name" class="form-label">Product Name</label>
+            <input type="text" class="form-control" id="product_name" name="product_name" value="{{ product.product_name }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="stock" class="form-label">Stock</label>
+            <input type="number" class="form-control" id="stock" name="stock" value="{{ product.stock }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="price" class="form-label">Price</label>
+            <input type="number" step="0.01" class="form-control" id="price" name="price" value="{{ product.price }}" required>
+        </div>
+
+        <button type="submit" class="btn btn-success w-100">Save Changes</button>
+        <a href="{% url 'administration:dashboard' %}" class="btn btn-secondary w-100 mt-2">Cancel</a>
+    </form>
+
+
+{% endblock body %}
+
+{% extends "utils/layout.html" %}
+{% block body %}
+<br><br>
+<div class="container">
+    <h2 class="text-center mb-4">My Cart</h2>
+    <hr>
+
+    <div class="alert alert-info text-center">
+        Your Budget: ${{ budget }}
+    </div>
+
+    {% if cart_items %}
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart_items %}
+                <tr>
+                    <td>{{ item.product.product_name }}</td>
+                    <td>${{ item.product.price }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>${{ item.total_price }}</td>
+                    <td>
+                 
+                        <a href="{% url 'product:remove_from_cart' item.product.product_id %}" class="btn btn-danger btn-sm">
+                            <i class="bi bi-trash"></i> Remove
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="3" class="text-end">Total Price:</th>
+                    <th>${{ total_price }}</th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+
+
+        {% if budget >= total_price %}
+            <div class="alert alert-success text-center">
+                You have enough budget to make this purchase.
+            </div>
+
+            <div class="text-center mt-3">
+                <a href="{% url 'product:confirm_cart' %}" class="btn btn-success w-100">
+                    <i class="bi bi-credit-card"></i> Confirm Cart
+                </a>
+            </div>
+        {% else %}
+            <div class="alert alert-warning text-center">
+                You do not have enough budget to make this purchase.
+            </div>
+        {% endif %}
+
+    {% else %}
+        <p class="text-center">Your cart is empty!</p>
+    {% endif %}
+
+    <div class="text-center mt-3">
+        <a href="{% url 'product:products' %}" class="btn btn-primary w-100    ">
+            <i class="bi bi-arrow-left"></i> Continue Shopping
+        </a>
+    </div>
+</div>
+{% endblock body %}
+
+
+{% extends "utils/layout.html" %}
+{% block body %}
+<br><br><br>
+<div class="container">
+    <h2 class="text-center mb-4">My Orders</h2>
+    <hr>
+
+    {% if orders %}
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Total Price</th>
+                        <th>Status</th>
+                        <th>Order Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr class="{% if order.order_status == 'PENDING' %}table-primary{% elif order.order_status == 'COMPLETED' %}table-success{% elif order.order_status == 'CANCELLED' %}table-danger{% endif %}">
+
+                        <td>{{ order.order_id }}</td>
+                        <td>{{ order.product.product_name }}</td>
+                        <td>{{ order.quantity }}</td>
+                        <td>${{ order.total_price }}</td>
+                        <td>{{ order.order_status }}</td>
+                        <td>{{ order.order_date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-center">You have no orders yet.</p>
+    {% endif %}
+</div>
+{% endblock body %}
+
+
+{% extends "utils/layout.html" %}
+{% block body %}
+<br><br><br>
+<div class="container">
+    <h1 class="text-center mb-4">Welcome to Honeysteel Ecommerce {{request.user.username}}</h1>
+    <hr>
+
+
+    <div class="row">
+        {% for product in products %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.product_name }}</h5>
+                    <p class="card-text">
+                        <strong>Price:</strong> ${{ product.price }} <br>
+                        <strong>Stock:</strong> {{ product.stock }}
+                    </p>
+    
+                    <form method="POST" action="{% url 'product:add_to_cart' product.product_id %}">
+                        {% csrf_token %}
+                        <div class="input-group mb-3">
+                            <input type="number" name="quantity" class="form-control" min="1" max="{{ product.stock }}" placeholder="Enter quantity" required>
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-cart"></i> Add to Cart
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <p class="text-center">No products available at the moment.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock body %}
+
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+
+    {% block title %}
+    
+    {% endblock title %}
+    <style>
+        {% comment %} body {
+            background: url("{% static 'img/logo.png' %}") no-repeat center center fixed;
+            background-size: cover;
+        } {% endcomment %}
+
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            z-index: -1; 
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Honey Steel Ecommerce</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="{% url 'product:products' %}">Products</a>
+                    </li>
+
+                </ul>
+                <div class="d-flex align-items-center">
+                    {% if request.user.is_authenticated %}
+
+                    {% if request.user.is_superuser %}
+                    <a href="{% url 'log:logs_page' %}" class="btn btn-outline-primary me-2">Logs</a>
+                    <a href="{% url 'administration:dashboard' %}" class="btn btn-outline-primary me-2">Dashboard</a>
+                    
+                    {% else %}
+                    <a href="{% url 'product:my_orders' %}" class="btn me-2">
+                        <i class="fa fa-shopping-cart"></i> My Orders
+                    </a>
+                    <a href="{% url 'product:my_card' %}" class="btn me-2">
+                        <i class="fa fa-shopping-cart"></i> My Cart
+                    </a>
+                    
+
+                    {% endif %}
+
+                    <a href="{% url 'customer:logout' %}" class="btn btn-outline-primary me-2">Logout</a>
+                    {% else %}
+                    <a href="{% url 'customer:login' %}" class="btn btn-outline-primary me-2">Login</a>
+                    <a href="{% url 'customer:register' %}" class="btn btn-primary">Register</a>
+                    {% endif %}
+
+                    
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        {% if messages %}
+        <br>
+      {% for message in messages %}
+        {% if message.tags == 'error' %}
+          <div class="alert alert-danger">{{ message }}</div>
+        {% else %}
+          <div class="alert alert-success">{{ message }}</div>
+        {% endif %}
+      {% endfor %}
+      <br>
+    {% endif %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+        
+        {% block body %}
+    
+        {% endblock body %}
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <script>
+        (() => {
+          'use strict'
+        
+          const forms = document.querySelectorAll('.needs-validation')
+      
+          Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+              if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+              }
+        
+              form.classList.add('was-validated')
+            }, false)
+          })
+        })()
+      </script>
+      
+
+</body>
+</html>
+
+
+{% extends "utils/layout.html" %}
+{% block body %}
+<br><br>
+
+
+<div class="container mt-4">
+    <div class="jumbotron text-center bg-light p-5 rounded">
+        <h1 class="display-4">Welcome to Honeysteel Ecommerce</h1>
+        <p class="lead">Find the best deals on premium products today!</p>
+        <a href="{% url 'product:products' %}" class="btn btn-primary btn-lg">Shop Now</a>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Featured Products</h2>
+    <div class="row">
+        {% for product in products %}
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.product_name }}</h5>
+                    <p class="card-text">Price: ${{ product.price }}</p>
+                    <p class="card-text">Stock: {{ product.stock }}</p>
+                    <a href="{% url 'product:products' %}" class="btn btn-primary">View Product</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+
+
+<div class="container mt-5 fixed-bottom">
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© 2024 Honeysteel Ecommerce. All Rights Reserved.</span>
+        </div>
+    </footer>
+</div>
+
+{% endblock body %}
